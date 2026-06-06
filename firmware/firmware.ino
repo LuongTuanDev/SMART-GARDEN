@@ -254,6 +254,40 @@ void processFirebaseResult(AsyncResult &aResult) {
   }
 }
 
+// --- BỘ LỌC TRUNG VỊ & TRUNG BÌNH ĐỌC ADC CẢM BIẾN ---
+// ESP32 ADC thường bị nhiễu lớn từ sóng WiFi và sụt áp dòng điện.
+// Hàm này đọc 15 mẫu cách nhau 5ms, sắp xếp để loại bỏ 3 giá trị nhỏ nhất
+// và 3 giá trị lớn nhất (các mẫu nhiễu đột biến), sau đó lấy trung bình các mẫu còn lại.
+int readFilteredADC() {
+  const int NUM_SAMPLES = 15;
+  int samples[NUM_SAMPLES];
+  
+  // 1. Lấy mẫu dữ liệu liên tiếp
+  for (int i = 0; i < NUM_SAMPLES; i++) {
+    samples[i] = analogRead(PIN_SOIL);
+    delay(5); // Chờ 5ms giữa các mẫu
+  }
+  
+  // 2. Sắp xếp nổi bọt (Bubble Sort) tăng dần
+  for (int i = 0; i < NUM_SAMPLES - 1; i++) {
+    for (int j = i + 1; j < NUM_SAMPLES; j++) {
+      if (samples[i] > samples[j]) {
+        int temp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = temp;
+      }
+    }
+  }
+  
+  // 3. Loại bỏ 3 mẫu bé nhất và 3 mẫu lớn nhất, tính trung bình 9 mẫu ở giữa
+  long sum = 0;
+  for (int i = 3; i < NUM_SAMPLES - 3; i++) {
+    sum += samples[i];
+  }
+  
+  return sum / (NUM_SAMPLES - 6);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -309,15 +343,15 @@ void loop() {
     isButtonPressed = false; 
   }
 
-  // --- ĐỌC ĐỘ ẨM ĐẤT ---
-  int rawADC = analogRead(PIN_SOIL);
-  // Quy đổi sang phần trăm (0 - 100%) sử dụng giới hạn hiệu chuẩn adc_kho và adc_uot
-  int percent = map(rawADC, adc_kho, adc_uot, 0, 100);
-  do_am_dat = constrain(percent, 0, 100);
-  
   // --- LOGIC VẬN HÀNH ĐỊNH KỲ 2 GIÂY ---
   if (millis() - lastSendTime >= SEND_INTERVAL) {
     lastSendTime = millis();
+    
+    // --- ĐỌC VÀ LỌC ĐỘ ẨM ĐẤT (Bộ lọc trung vị loại bỏ nhiễu đỉnh) ---
+    int rawADC = readFilteredADC();
+    // Quy đổi sang phần trăm (0 - 100%) sử dụng giới hạn hiệu chuẩn adc_kho và adc_uot
+    int percent = map(rawADC, adc_kho, adc_uot, 0, 100);
+    do_am_dat = constrain(percent, 0, 100);
     
     Serial.printf("\n--- CHU KỲ ĐỒNG BỘ ---\n[Cảm biến] Raw ADC: %d, Quy đổi (0-100%%): %d%%, Ngưỡng: %d%%\n", rawADC, do_am_dat, nguong_kho);
     
