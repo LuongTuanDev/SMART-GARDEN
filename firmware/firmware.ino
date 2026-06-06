@@ -28,6 +28,12 @@
 #define PIN_BUTTON    27    // Nút nhấn Reset WiFi (D27)
 #define PIN_LED       2     // Đèn LED tích hợp (D2)
 
+// --- ĐỊNH NGHĨA LOẠI RELAY (KÍCH HIGH HOẶC LOW) ---
+// Đa số module Relay trên thị trường kích LOW (mức LOW để bật bơm, HIGH để tắt bơm).
+// Hãy đặt thành LOW nếu máy bơm cứ chạy liên tục khi tắt trên web, và ngược lại.
+#define RELAY_ACTIVE    LOW   // Mức tín hiệu để BẬT bơm (LOW hoặc HIGH)
+#define RELAY_INACTIVE  HIGH  // Mức tín hiệu để TẮT bơm (HIGH hoặc LOW)
+
 // --- CẤU HÌNH THÔNG SỐ VẬN HÀNH ---
 #define HYSTERESIS     5     // Độ trễ ngắt bơm (5% ẩm)
 #define SEND_INTERVAL  2000  
@@ -135,7 +141,7 @@ void initFirebase() {
 // --- HÀM ĐIỀU KHIỂN BƠM ---
 void controlPump(int state) {
   trang_thai_bom = state;
-  digitalWrite(PIN_PUMP, state == 1 ? HIGH : LOW);
+  digitalWrite(PIN_PUMP, state == 1 ? RELAY_ACTIVE : RELAY_INACTIVE);
 }
 
 // --- HÀM PHỤ TRỢ BÓC TÁCH CHUỖI JSON TUYỆT ĐỐI ---
