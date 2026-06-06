@@ -19,7 +19,7 @@
 // ==========================================================================
 // 🔴 CẤU HÌNH THÔNG SỐ KẾT NỐI FIREBASE
 // ==========================================================================
-#define FIREBASE_HOST "smart-garden-eb27b-default-rtdb.firebaseio.com"
+#define FIREBASE_HOST "https://smart-garden-eb27b-default-rtdb.firebaseio.com"
 #define API_KEY "AIzaSyCBLGHiOptA8PW_R5jUGV840SaM9OfLrGo"                                       
 
 // --- CẤU HÌNH PHẦN CỨNG ESP32 ---
