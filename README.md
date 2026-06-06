@@ -20,7 +20,7 @@ d:\apptuoicaytudong\
 ## ⚙️ Hướng Dẫn Chuẩn Bị Trên Firebase Realtime Database
 
 1. Truy cập trang quản trị [Firebase Console](https://console.firebase.google.com/).
-2. Tạo một Project mới (ví dụ: `smart-garden-iot`).
+2. Tạo một Project mới (ví dụ: `Smart Garden`).
 3. Tạo **Realtime Database**:
    - Chọn khu vực (Region) thích hợp (ví dụ: Singapore - `asia-southeast1`).
    - Ở mục bảo mật (Rules Setup), chọn **Start in test mode** để bật quyền đọc/ghi tự do cho quá trình phát triển ban đầu.
