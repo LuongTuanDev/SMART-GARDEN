@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garden - Dashboard Tưới Nước Thông Minh</title>
+    
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Chart.js for Soil Moisture Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <!-- --- HEADER --- -->
+    <header>
+        <div class="logo-area">
+            <i class="fa-solid fa-leaf"></i>
+            <div>
+                <h1>Smart Garden</h1>
+                <p style="color: var(--text-muted); font-size: 0.8rem;">IoT Monitoring & Control System</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="header-status">
+                <span class="status-dot" id="db-status-dot"></span>
+                <span id="db-status-text" style="font-weight: 500;">Chưa cấu hình</span>
+            </div>
+            <button class="settings-toggle-btn" id="open-settings-btn">
+                <i class="fa-solid fa-gear"></i> Cấu hình Firebase
+            </button>
+        </div>
+    </header>
+
+    <!-- --- MAIN CONTENT GRID --- -->
+    <div class="dashboard-grid">
+        
+        <!-- CARD 1: SOIL MOISTURE GAUGE -->
+        <div class="card" id="soil-card">
+            <div class="card-title">
+                <i class="fa-solid fa-droplet"></i>
+                <span>Độ ẩm đất hiện tại</span>
+            </div>
+            <div class="gauge-container">
+                <svg class="circular-gauge" viewBox="0 0 180 180">
+                    <circle class="gauge-bg" cx="90" cy="90" r="84"></circle>
+                    <circle class="gauge-progress" id="soil-gauge-bar" cx="90" cy="90" r="84"></circle>
+                </svg>
+                <div class="gauge-text">
+                    <span class="gauge-value" id="soil-value">--</span>
+                    <span class="gauge-label">Độ ẩm (%)</span>
+                </div>
+                <div class="gauge-info" id="soil-status-text">Đang đọc dữ liệu...</div>
+            </div>
+        </div>
+
+        <!-- CARD 2: PUMP STATE & ANIMATION -->
+        <div class="card" id="pump-card">
+            <div class="card-title">
+                <i class="fa-solid fa-faucet-drip"></i>
+                <span>Trạng thái máy bơm</span>
+            </div>
+            <div class="pump-display" id="pump-display-container">
+                <div class="pump-avatar">
+                    <i class="fa-solid fa-faucet"></i>
+                    <div class="water-droplets">
+                        <span class="drop"></span>
+                        <span class="drop"></span>
+                        <span class="drop"></span>
+                    </div>
+                </div>
+                <div class="status-pill pill-off" id="pump-status-badge">ĐANG TẮT</div>
+                <div class="mode-indicator" id="pump-mode-indicator">Chế độ: --</div>
+            </div>
+        </div>
+
+        <!-- CARD 3: SMART CONTROLS -->
+        <div class="card actionable">
+            <div class="card-title">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Bảng điều khiển</span>
+            </div>
+            <div class="controls-layout">
+                <!-- Mode Selection -->
+                <div class="control-item">
+                    <div class="control-label">
+                        <span>Chế độ tự động</span>
+                        <small>ESP8266 tự động tưới theo cảm biến</small>
+                    </div>
+                    <label class="glass-switch">
+                        <input type="checkbox" id="mode-switch">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Manual Pump Trigger -->
+                <div class="control-item disabled-item" id="manual-pump-item">
+                    <div class="control-label">
+                        <span>Bật bơm thủ công</span>
+                        <small>Chỉ hoạt động ở chế độ thủ công</small>
+                    </div>
+                    <label class="glass-switch">
+                        <input type="checkbox" id="pump-switch">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Threshold Slider -->
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Ngưỡng tưới tự động</span>
+                        <span class="slider-val-badge" id="threshold-val">--</span>
+                    </div>
+                    <input type="range" id="threshold-slider" min="0" max="100" step="1" value="40">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+                        <span>0% (Khô hạn)</span>
+                        <span>100% (Ướt đẫm)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- --- SECOND ROW: CHART & LOGS --- -->
+    <div class="bottom-grid">
+        
+        <!-- CHART CARD -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Biểu đồ độ ẩm thời gian thực</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="moisture-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- LOGS CARD -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-list-ul"></i>
+                <span>Nhật ký hoạt động</span>
+            </div>
+            <ul class="logs-list" id="logs-container">
+                <li class="log-entry info">
+                    <div class="log-meta">
+                        <span>Hệ thống</span>
+                        <span class="log-time">--:--:--</span>
+                    </div>
+                    <div class="log-text">Khởi tạo giao diện Smart Garden.</div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- --- FOOTER --- -->
+    <footer>
+        <p>Hệ thống Smart Garden IoT &copy; 2026. Lập trình bằng HTML, CSS & JavaScript kết nối Firebase Realtime Database.</p>
+    </footer>
+</div>
+
+<!-- --- SETTINGS MODAL DIALOG --- -->
+<div class="modal-overlay" id="settings-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-database"></i> Cấu hình Firebase</h2>
+            <button class="close-btn" id="close-settings-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="firebase-config-form">
+            <div class="form-group">
+                <label for="cfg-db-url">Database URL (rtb.firebaseio.com)</label>
+                <input type="text" id="cfg-db-url" placeholder="https://tên-dự-án-default-rtdb.firebaseio.com" required>
+            </div>
+            <div class="form-group">
+                <label for="cfg-api-key">API Key</label>
+                <input type="text" id="cfg-api-key" placeholder="AIzaSy..." required>
+            </div>
+            <div class="form-group">
+                <label for="cfg-auth-domain">Auth Domain</label>
+                <input type="text" id="cfg-auth-domain" placeholder="tên-dự-án.firebaseapp.com" required>
+            </div>
+            <div class="form-group">
+                <label for="cfg-project-id">Project ID</label>
+                <input type="text" id="cfg-project-id" placeholder="tên-dự-án" required>
+            </div>
+            <div class="form-group">
+                <label for="cfg-app-id">App ID (Không bắt buộc)</label>
+                <input type="text" id="cfg-app-id" placeholder="1:123456:web:abcd...">
+            </div>
+
+            <!-- Phân tách cấu hình cảm biến -->
+            <div style="margin: 20px 0 10px 0; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <h3 style="font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-light); margin-bottom: 12px;">
+                    <i class="fa-solid fa-gauge-high" style="color: var(--accent);"></i> Hiệu chuẩn cảm biến độ ẩm
+                </h3>
+            </div>
+            
+            <div class="form-group">
+                <label>ADC thô hiện tại từ cảm biến (Đọc từ ESP32)</label>
+                <input type="text" id="cfg-raw-adc" readonly style="background: rgba(255,255,255,0.02); color: var(--accent); border-color: rgba(52, 152, 219, 0.2); font-weight: bold; cursor: not-allowed;" placeholder="Đang chờ ESP32 gửi dữ liệu...">
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="cfg-adc-kho">ADC khi Khô (0% ẩm)</label>
+                    <input type="number" id="cfg-adc-kho" min="0" max="4095" value="4095" required>
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="cfg-adc-uot">ADC khi Ướt (100% ẩm)</label>
+                    <input type="number" id="cfg-adc-uot" min="0" max="4095" value="1000" required>
+                </div>
+            </div>
+            
+            <div class="form-help">
+                <i class="fa-solid fa-circle-info"></i> Thông số cấu hình sẽ được lưu trực tiếp trên <b>trình duyệt của bạn (Local Storage)</b>. Chúng tôi không thu thập thông tin này. Bạn có thể lấy thông số trong cài đặt Firebase Project của bạn.
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-settings-btn">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Firebase App and Database SDK (Compat version for local file:// compatibility without CORS blocks) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<!-- Core Logic Script -->
+<script src="app.js"></script>
+
+</body>
+</html>

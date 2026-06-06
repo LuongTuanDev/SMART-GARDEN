@@ -1,0 +1,15 @@
+# Arduino IDE temporary/build files
+build/
+*.local.properties
+*.o
+*.elf
+*.bin
+
+# System files
+.DS_Store
+Thumbs.db
+
+# VS Code / Editor config
+.vscode/
+.idea/
+*.log
