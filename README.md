@@ -69,7 +69,7 @@ Mở Arduino IDE -> Đi tới **Tools** -> **Manage Libraries...** và cài đ�
 - Mở file `firmware/firmware.ino` trong thư mục dự án bằng Arduino IDE.
 - Cập nhật thông tin cấu hình Firebase của bạn ở phần khai báo:
   ```cpp
-  #define FIREBASE_HOST "ten-du-an-default-rtdb.firebaseio.com" // Thay bằng Database URL của bạn (không chứa https://)
+  #define FIREBASE_HOST "https://ten-du-an-default-rtdb.firebaseio.com/" // Thay bằng Database URL của bạn 
   #define API_KEY "AIzaSy..."                                   // Thay bằng API Key của bạn
   ```
 - Kết nối mạch ESP8266 với máy tính, chọn đúng Cổng COM (Port) và Board tương ứng (ví dụ: `NodeMCU 1.0 (ESP-12E Module)`).
