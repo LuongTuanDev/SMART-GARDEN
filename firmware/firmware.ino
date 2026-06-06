@@ -31,8 +31,8 @@
 // --- ĐỊNH NGHĨA LOẠI RELAY (KÍCH HIGH HOẶC LOW) ---
 // Đa số module Relay trên thị trường kích LOW (mức LOW để bật bơm, HIGH để tắt bơm).
 // Hãy đặt thành LOW nếu máy bơm cứ chạy liên tục khi tắt trên web, và ngược lại.
-#define RELAY_ACTIVE    LOW   // Mức tín hiệu để BẬT bơm (LOW hoặc HIGH)
-#define RELAY_INACTIVE  HIGH  // Mức tín hiệu để TẮT bơm (HIGH hoặc LOW)
+#define RELAY_ACTIVE    HIGH  // Mức tín hiệu để BẬT bơm (LOW hoặc HIGH)
+#define RELAY_INACTIVE  LOW   // Mức tín hiệu để TẮT bơm (HIGH hoặc LOW)
 
 // --- CẤU HÌNH THÔNG SỐ VẬN HÀNH ---
 #define HYSTERESIS     5     // Độ trễ ngắt bơm (5% ẩm)
