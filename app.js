@@ -185,10 +185,13 @@ function initFirebase() {
             updateChart(data.do_am_dat);
         }
 
-        // Cập nhật giá trị ADC thô hiển thị trong modal cài đặt
+        // Cập nhật giá trị ADC thô hiển thị trong modal cài đặt và giao diện chính
         if (data.raw_adc !== undefined) {
             const rawAdcEl = document.getElementById('cfg-raw-adc');
             if (rawAdcEl) rawAdcEl.value = data.raw_adc;
+            
+            const rawAdcDisplay = document.getElementById('raw-adc-display');
+            if (rawAdcDisplay) rawAdcDisplay.innerText = `ADC thô: ${data.raw_adc}`;
         }
 
         // 2. Cập nhật trạng thái máy bơm thực tế từ phần cứng
