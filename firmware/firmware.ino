@@ -61,6 +61,7 @@ int adc_uot = 1000;
 
 // Biến kiểm soát lưu lượng gửi Firebase (Tránh tràn giới hạn ghi)
 int last_uploaded_do_am_dat = -1;
+int last_uploaded_raw_adc = -1;
 int last_uploaded_trang_thai_bom = -1;
 int last_uploaded_che_do = -1;
 int last_uploaded_nguong_kho = -1;
@@ -198,6 +199,7 @@ void uploadDataToFirebase(int rawADC) {
   if (app.ready()) {
     // Chỉ gửi lên Firebase khi có sự thay đổi giá trị hoặc tới hạn Heartbeat định kỳ
     bool hasMoistureChanged = abs(do_am_dat - last_uploaded_do_am_dat) >= 2; // Thay đổi >= 2% ẩm
+    bool hasRawAdcChanged = abs(rawADC - last_uploaded_raw_adc) >= 30;       // Thay đổi ADC thô >= 30
     bool hasPumpStateChanged = (trang_thai_bom != last_uploaded_trang_thai_bom);
     bool hasModeChanged = (che_do != last_uploaded_che_do);
     bool hasThresholdChanged = (nguong_kho != last_uploaded_nguong_kho);
@@ -206,9 +208,10 @@ void uploadDataToFirebase(int rawADC) {
     bool hasAdcUotChanged = (adc_uot != last_uploaded_adc_uot);
     bool isHeartbeat = (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL);
 
-    if (hasMoistureChanged || hasPumpStateChanged || hasModeChanged || hasThresholdChanged || hasManualPumpChanged || hasAdcKhoChanged || hasAdcUotChanged || isHeartbeat) {
+    if (hasMoistureChanged || hasRawAdcChanged || hasPumpStateChanged || hasModeChanged || hasThresholdChanged || hasManualPumpChanged || hasAdcKhoChanged || hasAdcUotChanged || isHeartbeat) {
       // Cập nhật mốc lưu giữ
       last_uploaded_do_am_dat = do_am_dat;
+      last_uploaded_raw_adc = rawADC;
       last_uploaded_trang_thai_bom = trang_thai_bom;
       last_uploaded_che_do = che_do;
       last_uploaded_nguong_kho = nguong_kho;
@@ -231,6 +234,7 @@ void uploadDataToFirebase(int rawADC) {
                     jsonStr.c_str(), 
                     hasPumpStateChanged ? "Thay đổi trạng thái bơm" : 
                     hasMoistureChanged ? "Độ ẩm biến động" : 
+                    hasRawAdcChanged ? "ADC thô biến động" :
                     hasModeChanged ? "Chuyển chế độ" : 
                     hasThresholdChanged ? "Đổi ngưỡng tưới" : 
                     hasManualPumpChanged ? "Ấn nút bơm thủ công" : 
@@ -350,7 +354,10 @@ void loop() {
     // --- ĐỌC VÀ LỌC ĐỘ ẨM ĐẤT (Bộ lọc trung vị loại bỏ nhiễu đỉnh) ---
     int rawADC = readFilteredADC();
     // Quy đổi sang phần trăm (0 - 100%) sử dụng giới hạn hiệu chuẩn adc_kho và adc_uot
-    int percent = map(rawADC, adc_kho, adc_uot, 0, 100);
+    int percent = 0;
+    if (adc_kho != adc_uot) {
+      percent = map(rawADC, adc_kho, adc_uot, 0, 100);
+    }
     do_am_dat = constrain(percent, 0, 100);
     
     Serial.printf("\n--- CHU KỲ ĐỒNG BỘ ---\n[Cảm biến] Raw ADC: %d, Quy đổi (0-100%%): %d%%, Ngưỡng: %d%%\n", rawADC, do_am_dat, nguong_kho);
