@@ -194,53 +194,20 @@ void syncWithFirebase() {
   }
 }
 
-// --- 🔴 ĐÃ CẬP NHẬT: GỬI TRỌN BỘ 5 BIẾN ĐỒNG BỘ LÊN GIAO DIỆN ---
+// --- 🔴 ĐÃ CẬP NHẬT: GỬI TRỌN BỘ BIẾN ĐỒNG BỘ LÊN GIAO DIỆN MỖI CHU KỲ ---
 void uploadDataToFirebase(int rawADC) {
   if (app.ready()) {
-    // Chỉ gửi lên Firebase khi có sự thay đổi giá trị hoặc tới hạn Heartbeat định kỳ
-    bool hasMoistureChanged = abs(do_am_dat - last_uploaded_do_am_dat) >= 2; // Thay đổi >= 2% ẩm
-    bool hasRawAdcChanged = abs(rawADC - last_uploaded_raw_adc) >= 30;       // Thay đổi ADC thô >= 30
-    bool hasPumpStateChanged = (trang_thai_bom != last_uploaded_trang_thai_bom);
-    bool hasModeChanged = (che_do != last_uploaded_che_do);
-    bool hasThresholdChanged = (nguong_kho != last_uploaded_nguong_kho);
-    bool hasManualPumpChanged = (bom_thu_cong != last_uploaded_bom_thu_cong);
-    bool hasAdcKhoChanged = (adc_kho != last_uploaded_adc_kho);
-    bool hasAdcUotChanged = (adc_uot != last_uploaded_adc_uot);
-    bool isHeartbeat = (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL);
-
-    if (hasMoistureChanged || hasRawAdcChanged || hasPumpStateChanged || hasModeChanged || hasThresholdChanged || hasManualPumpChanged || hasAdcKhoChanged || hasAdcUotChanged || isHeartbeat) {
-      // Cập nhật mốc lưu giữ
-      last_uploaded_do_am_dat = do_am_dat;
-      last_uploaded_raw_adc = rawADC;
-      last_uploaded_trang_thai_bom = trang_thai_bom;
-      last_uploaded_che_do = che_do;
-      last_uploaded_nguong_kho = nguong_kho;
-      last_uploaded_bom_thu_cong = bom_thu_cong;
-      last_uploaded_adc_kho = adc_kho;
-      last_uploaded_adc_uot = adc_uot;
-      lastHeartbeatTime = millis();
-
-      String jsonStr = "{\"do_am_dat\":" + String(do_am_dat) + 
-                       ",\"trang_thai_bom\":" + String(trang_thai_bom) + 
-                       ",\"che_do\":" + String(che_do) + 
-                       ",\"nguong_kho\":" + String(nguong_kho) + 
-                       ",\"bom_thu_cong\":" + String(bom_thu_cong) + 
-                       ",\"raw_adc\":" + String(rawADC) + 
-                       ",\"adc_kho\":" + String(adc_kho) + 
-                       ",\"adc_uot\":" + String(adc_uot) + "}";
-      
-      Database.update(aClient, "/HeThongTuoi", object_t(jsonStr), databaseResult); 
-      Serial.printf("[Firebase Write] Gửi dữ liệu cập nhật: %s (Lý do: %s)\n", 
-                    jsonStr.c_str(), 
-                    hasPumpStateChanged ? "Thay đổi trạng thái bơm" : 
-                    hasMoistureChanged ? "Độ ẩm biến động" : 
-                    hasRawAdcChanged ? "ADC thô biến động" :
-                    hasModeChanged ? "Chuyển chế độ" : 
-                    hasThresholdChanged ? "Đổi ngưỡng tưới" : 
-                    hasManualPumpChanged ? "Ấn nút bơm thủ công" : 
-                    hasAdcKhoChanged ? "Thay đổi cấu hình ADC khô" :
-                    hasAdcUotChanged ? "Thay đổi cấu hình ADC ướt" : "Heartbeat định kỳ");
-    }
+    String jsonStr = "{\"do_am_dat\":" + String(do_am_dat) + 
+                     ",\"trang_thai_bom\":" + String(trang_thai_bom) + 
+                     ",\"che_do\":" + String(che_do) + 
+                     ",\"nguong_kho\":" + String(nguong_kho) + 
+                     ",\"bom_thu_cong\":" + String(bom_thu_cong) + 
+                     ",\"raw_adc\":" + String(rawADC) + 
+                     ",\"adc_kho\":" + String(adc_kho) + 
+                     ",\"adc_uot\":" + String(adc_uot) + "}";
+    
+    Database.update(aClient, "/HeThongTuoi", object_t(jsonStr), databaseResult); 
+    Serial.printf("[Firebase Write] Gửi dữ liệu cập nhật: %s\n", jsonStr.c_str());
   } else {
     Serial.println("[Firebase Write] App chưa sẵn sàng.");
   }
