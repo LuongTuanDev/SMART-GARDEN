@@ -231,8 +231,7 @@ void setup() {
   delay(500);
   Serial.println("\n--- HỆ THỐNG TƯỚI CÂY THÔNG MINH ESP32 ---");
 
-  // Cấu hình chế độ chân cảm biến và máy bơm
-  pinMode(PIN_SOIL, INPUT);
+  // Cấu hình chế độ chân máy bơm (chân cảm biến Analog không cần pinMode)
   pinMode(PIN_PUMP, OUTPUT);
   pinMode(PIN_BUTTON, INPUT_PULLUP); 
   setupLED();
