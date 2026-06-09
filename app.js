@@ -157,14 +157,26 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
 
-    dbStatusDot.className = "status-dot connected";
-    dbStatusText.innerText = "Đã kết nối trực tuyến";
-    addLog("Kết nối Realtime Database thành công!", "success");
+    // Lắng nghe trạng thái kết nối thực tế với Firebase
+    db.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+            dbStatusDot.className = "status-dot connected";
+            dbStatusText.innerText = "Đã kết nối trực tuyến";
+            addLog("Đã kết nối trực tuyến với Firebase!", "success");
+        } else {
+            dbStatusDot.className = "status-dot";
+            dbStatusText.innerText = "Đang kết nối...";
+            addLog("Đang kết nối hoặc mất kết nối tới Firebase.", "warning");
+        }
+    });
 
     // LẮNG NGHE SỰ THAY ĐỔI TỪ ESP32 ĐẨY LÊN
     db.ref('/HeThongTuoi').on('value', (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
+        if (!data) {
+            addLog("Database rỗng hoặc không có dữ liệu tại nút /HeThongTuoi", "warning");
+            return;
+        }
 
         // 1. Cập nhật độ ẩm đất hiển thị
         if (data.do_am_dat !== undefined) {
@@ -227,6 +239,9 @@ function initFirebase() {
             thresholdSlider.value = data.nguong_kho;
             thresholdVal.innerText = data.nguong_kho + "%";
         }
+    }, (error) => {
+        console.error("Lỗi đồng bộ dữ liệu từ Firebase:", error);
+        addLog("Lỗi Firebase: " + error.message + " (Kiểm tra lại Rules)", "warning");
     });
 }
 
