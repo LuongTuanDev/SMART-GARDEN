@@ -172,6 +172,7 @@ void syncWithFirebase() {
     String payload = Database.get<String>(aClient, "/HeThongTuoi");
     
     if (aClient.lastError().code() == 0 && payload.length() > 0) {
+      Serial.printf("[Firebase Read Debug] Payload nhan duoc: %s\n", payload.c_str());
       // Giải mã bằng bộ bóc tách chuỗi dọn sạch ký tự nhiễu
       int val_che_do = getJsonValue(payload, "che_do");
       int val_nguong_kho = getJsonValue(payload, "nguong_kho");
