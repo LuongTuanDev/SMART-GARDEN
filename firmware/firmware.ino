@@ -15,6 +15,7 @@
 #include <WebServer.h>
 #include <WiFiManager.h>          
 #include <FirebaseClient.h>       // Thư viện core FirebaseClient
+#include "HD38.h"                 // Thư viện tự viết quản lý cảm biến HD38
 
 // ==========================================================================
 // 🔴 CẤU HÌNH THÔNG SỐ KẾT NỐI FIREBASE
@@ -225,45 +226,13 @@ void processFirebaseResult(AsyncResult &aResult) {
   }
 }
 
-// --- BỘ LỌC TRUNG VỊ & TRUNG BÌNH ĐỌC ADC CẢM BIẾN ---
-// ESP32 ADC thường bị nhiễu lớn từ sóng WiFi và sụt áp dòng điện.
-// Hàm này đọc 15 mẫu cách nhau 5ms, sắp xếp để loại bỏ 3 giá trị nhỏ nhất
-// và 3 giá trị lớn nhất (các mẫu nhiễu đột biến), sau đó lấy trung bình các mẫu còn lại.
-int readFilteredADC() {
-  const int NUM_SAMPLES = 15;
-  int samples[NUM_SAMPLES];
-  
-  // 1. Lấy mẫu dữ liệu liên tiếp
-  for (int i = 0; i < NUM_SAMPLES; i++) {
-    samples[i] = analogRead(PIN_SOIL);
-    delay(5); // Chờ 5ms giữa các mẫu
-  }
-  
-  // 2. Sắp xếp nổi bọt (Bubble Sort) tăng dần
-  for (int i = 0; i < NUM_SAMPLES - 1; i++) {
-    for (int j = i + 1; j < NUM_SAMPLES; j++) {
-      if (samples[i] > samples[j]) {
-        int temp = samples[i];
-        samples[i] = samples[j];
-        samples[j] = temp;
-      }
-    }
-  }
-  
-  // 3. Loại bỏ 3 mẫu bé nhất và 3 mẫu lớn nhất, tính trung bình 9 mẫu ở giữa
-  long sum = 0;
-  for (int i = 3; i < NUM_SAMPLES - 3; i++) {
-    sum += samples[i];
-  }
-  
-  return sum / (NUM_SAMPLES - 6);
-}
-
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("\n--- HỆ THỐNG TƯỚI CÂY THÔNG MINH ESP32 ---");
 
+  // Cấu hình chế độ chân cảm biến và máy bơm
+  pinMode(PIN_SOIL, INPUT);
   pinMode(PIN_PUMP, OUTPUT);
   pinMode(PIN_BUTTON, INPUT_PULLUP); 
   setupLED();
@@ -318,9 +287,11 @@ void loop() {
   if (millis() - lastSendTime >= SEND_INTERVAL) {
     lastSendTime = millis();
     
-    // --- ĐỌC VÀ LỌC ĐỘ ẨM ĐẤT (Bộ lọc trung vị loại bỏ nhiễu đỉnh) ---
-    int rawADC = readFilteredADC();
-    // Quy đổi sang phần trăm (0 - 100%) sử dụng giới hạn hiệu chuẩn adc_kho và adc_uot
+    // --- ĐỌC VÀ LỌC ĐỘ ẨM ĐẤT (Sử dụng thư viện tự viết HD38 của thầy) ---
+    int raw10Bit = readSoilMoisture(PIN_SOIL); // Trả về dải 10-bit (0 - 1023) theo code của thầy
+    int rawADC = map(raw10Bit, 0, 1023, 0, 4095); // Quy đổi ngược lại 12-bit để khớp cấu hình hiệu chuẩn Web
+    
+    // Quy đổi ra phần trăm (0 - 100%) để tương thích với vòng tròn Gauge của Web Dashboard
     int percent = 0;
     if (adc_kho != adc_uot) {
       percent = map(rawADC, adc_kho, adc_uot, 0, 100);
@@ -354,8 +325,43 @@ void loop() {
       }
     }
 
-    // 3. Đẩy đồng bộ ngược lại toàn bộ 8 biến lên Firebase
-    uploadDataToFirebase(rawADC);
+    // 3. THUẬT TOÁN TỐI ƯU HÓA DỮ LIỆU (DATA THROTTLING) THEO GỢI Ý CỦA THẦY
+    // Chỉ đẩy lên Firebase khi có sự thay đổi về trạng thái (độ ẩm đất, bơm, chế độ, hoặc các thông số cấu hình)
+    // HOẶC gửi Heartbeat định kỳ (HEARTBEAT_INTERVAL = 30 giây) để tránh tình trạng Web Dashboard bị offline
+    // và giữ đồ thị cập nhật đều đặn mà không làm ngập Firebase.
+    bool hasChanged = (do_am_dat != last_uploaded_do_am_dat) || 
+                      (trang_thai_bom != last_uploaded_trang_thai_bom) ||
+                      (che_do != last_uploaded_che_do) ||
+                      (nguong_kho != last_uploaded_nguong_kho) ||
+                      (bom_thu_cong != last_uploaded_bom_thu_cong) ||
+                      (adc_kho != last_uploaded_adc_kho) ||
+                      (adc_uot != last_uploaded_adc_uot);
+                      
+    bool isHeartbeat = (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL);
+
+    if (hasChanged || isHeartbeat) {
+      if (hasChanged) {
+        Serial.println("[Tối ưu Firebase] Phát hiện thay đổi trạng thái hệ thống -> ĐẨY LÊN FIREBASE");
+      } else {
+        Serial.println("[Tối ưu Firebase] Gửi Heartbeat định kỳ duy trì kết nối -> ĐẨY LÊN FIREBASE");
+      }
+      
+      uploadDataToFirebase(rawADC);
+      
+      // Đồng bộ bộ nhớ đệm các biến đã tải lên
+      last_uploaded_do_am_dat = do_am_dat;
+      last_uploaded_raw_adc = rawADC;
+      last_uploaded_trang_thai_bom = trang_thai_bom;
+      last_uploaded_che_do = che_do;
+      last_uploaded_nguong_kho = nguong_kho;
+      last_uploaded_bom_thu_cong = bom_thu_cong;
+      last_uploaded_adc_kho = adc_kho;
+      last_uploaded_adc_uot = adc_uot;
+      
+      lastHeartbeatTime = millis();
+    } else {
+      Serial.println("[Tối ưu Firebase] Không có thay đổi trạng thái -> Bỏ qua, không gửi dữ liệu");
+    }
   }
 
   // Cập nhật trạng thái nháy đèn LED liên tục (không chặn)

@@ -38,10 +38,13 @@ d:\apptuoicaytudong\
    {
      "HeThongTuoi": {
        "do_am_dat": 0,
-       "nguong_kho": 600,
+       "nguong_kho": 40,
        "che_do": 0,
        "bom_thu_cong": 0,
-       "trang_thai_bom": 0
+       "trang_thai_bom": 0,
+       "raw_adc": 4095,
+       "adc_kho": 4095,
+       "adc_uot": 1000
      }
    }
    ```
